@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DormSaver ⚡ - แอพคำนวณและบริหารจัดการค่าไฟเด็กหอ</title>
+    
+    <!-- Google Fonts: Prompt (Thai) & Inter (English/Numbers) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN for Donut Breakdown Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        spark: {
+                            50: '#FFF9F0',
+                            100: '#FFF0D6',
+                            200: '#FFE0B0',
+                            400: '#FFB356',
+                            500: '#FF9822',
+                            600: '#EDAA49',
+                            700: '#D67D11',
+                            800: '#A35B05'
+                        },
+                        cozy: {
+                            bg: '#FAF9F6',
+                            surface: '#FFFFFF',
+                            text: '#2B2B2B',
+                            muted: '#8D99AE',
+                            border: '#EAE7E1',
+                            accent: '#F4EFEA'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Prompt', 'Sarabun', 'sans-serif'],
+                        en: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #F0ECE3;
+            color: #2B2B2B;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .font-en {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Viewport Mobile Container Optimized for 6.9 inch screen feel (~440px max-width) */
+        .app-container {
+            max-width: 440px;
+            min-height: 100vh;
+            margin: 0 auto;
+            background-color: #FAF9F6;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FAF9F6;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #EAE7E1;
+            border-radius: 10px;
+        }
+
+        .cozy-card {
+            background: #FFFFFF;
+            border: 1px solid #EAE7E1;
+            border-radius: 16px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s ease;
+        }
+
+        .cozy-input {
+            background-color: #FAF9F6;
+            border: 1px solid #EAE7E1;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        .cozy-input:focus {
+            outline: none;
+            border-color: #FF9822;
+            background-color: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(255, 152, 34, 0.12);
+        }
+
+        .spark-gradient {
+            background: linear-gradient(135deg, #FF9822 0%, #EDAA49 100%);
+        }
+
+        .avatar-btn {
+            border: 2px solid #FF9822;
+            transition: transform 0.2s ease;
+        }
+        .avatar-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-stone-300 flex justify-center items-center min-h-screen p-0 sm:p-2">
+
+    <div class="app-container w-full min-h-screen pb-24 relative overflow-x-hidden">
+        
+        <!-- TOP APP BAR (Header) -->
+        <header class="sticky top-0 z-30 bg-opacity-95 backdrop-blur-md bg-[#FAF9F6] px-5 py-3.5 border-b border-cozy-border flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-2xl spark-gradient text-white flex items-center justify-center shadow-md shadow-spark-500/20">
+                    <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-extrabold tracking-tight text-cozy-text leading-none flex items-center space-x-1">
+                        <span>DormSaver</span>
+                        <span class="text-spark-500 text-sm">⚡</span>
+                    </h1>
+                    <p id="headerSubText" class="text-[11px] text-cozy-muted font-medium mt-0.5">หอพักสบายใจ • ห้อง 408</p>
+                </div>
+            </div>
+            
+            <!-- Circular Profile Avatar -->
+            <button onclick="switchTab('account')" class="avatar-btn w-9 h-9 rounded-full bg-spark-100 flex items-center justify-center text-spark-700 font-bold text-sm shadow-sm overflow-hidden" title="จัดการโปรไฟล์บัญชีผู้ใช้">
+                <span id="headerAvatarEmoji">🐱</span>
+            </button>
+        </header>
+
+        <!-- MAIN DYNAMIC CONTENT AREA -->
+        <main class="p-4 flex-1 space-y-4">
+            
+            <!-- ========================================== -->
+            <!-- TAB 1: HOME / CALCULATOR TAB -->
+            <!-- ========================================== -->
+            <section id="tab-calculator" class="tab-content space-y-4">
+                
+                <!-- 1. TOPMOST: MONTHLY COST SUMMARY BOX (SPARKED AMBER GRADIENT) -->
+                <div class="cozy-card p-4 spark-gradient text-white space-y-3 relative overflow-hidden shadow-lg shadow-spark-500/15">
+                    <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="absolute right-4 top-4 text-white/20">
+                        <i data-lucide="zap" class="w-16 h-16 fill-current"></i>
+                    </div>
+
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <span class="text-xs font-semibold text-spark-100 flex items-center space-x-1 tracking-wide">
+                                <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                                <span>สรุปค่าไฟคาดการณ์ประจำเดือน</span>
+                            </span>
+                            <h3 id="totalCost" class="text-3xl font-black font-en mt-1 text-white tracking-tight">0.00 ฿</h3>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-2.5 border-t border-white/20 text-xs relative z-10">
+                        <div>
+                            <span class="opacity-80 text-[11px] block">หน่วยที่ใช้รวม</span>
+                            <span id="totalKwh" class="text-sm font-bold font-en">0.00 kWh</span>
+                        </div>
+                        <div>
+                            <span class="opacity-80 text-[11px] block">เฉลี่ยวันละประมาณ</span>
+                            <span id="dailyCost" class="text-sm font-bold font-en">0.00 ฿</span>
+                        </div>
+                    </div>
+
+                    <!-- Budget Cap Progress Bar -->
+                    <div id="budgetProgressBox" class="pt-2 border-t border-white/15 space-y-1 relative z-10">
+                        <div class="flex justify-between text-[11px] opacity-95">
+                            <span>งบประมาณเดือนนี้: <span id="budgetValueDisplay" class="font-en font-bold">1,500 ฿</span></span>
+                            <span id="budgetPercentDisplay" class="font-en font-bold">0%</span>
+                        </div>
+                        <div class="w-full h-2 bg-black/20 rounded-full overflow-hidden">
+                            <div id="budgetProgressBar" class="h-full bg-white rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. DORM ELECTRICITY RATE SETUP BOX -->
+                <div class="cozy-card p-3.5 flex items-center justify-between bg-spark-50/50 border-spark-200">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2.5 bg-white rounded-xl text-spark-500 shadow-sm border border-spark-100">
+                            <i data-lucide="coins" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <span class="text-[11px] text-cozy-muted block">อัตราค่าไฟฟ้าหอพัก (Flat Rate)</span>
+                            <div class="flex items-baseline space-x-1">
+                                <input type="number" id="electricityRate" value="8" step="0.5" onchange="calculateAll()" class="w-14 bg-white border border-spark-200 rounded-lg px-2 py-0.5 text-sm font-bold font-en text-spark-700 text-center focus:outline-none focus:border-spark-500">
+                                <span class="text-xs font-semibold text-cozy-text">บาท / หน่วย (kWh)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] text-cozy-muted block">เรตปกติเด็กหอ</span>
+                        <span class="text-xs font-bold font-en text-spark-600">7 - 10 ฿</span>
+                    </div>
+                </div>
+
+                <!-- 3. ADD APPLIANCE FORM WITH MINUTE / HOUR TOGGLE & DAYS PER MONTH -->
+                <div class="cozy-card p-4 space-y-3">
+                    <h2 class="text-xs font-bold text-cozy-text uppercase tracking-wider flex items-center space-x-1.5">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-spark-500"></i>
+                        <span>เพิ่มอุปกรณ์ไฟฟ้าใหม่</span>
+                    </h2>
+                    
+                    <div class="space-y-2.5">
+                        <div>
+                            <label class="text-[11px] font-semibold text-cozy-muted mb-1 block">ชื่อเครื่องใช้ไฟฟ้า</label>
+                            <input type="text" id="devName" placeholder="เช่น เครื่องปรับอากาศ, ไดร์เป่าผม" class="w-full cozy-input px-3 py-2 text-xs text-cozy-text">
+                        </div>
+                        
+                        <div class="grid grid-cols-12 gap-2">
+                            <div class="col-span-6">
+                                <label class="text-[11px] font-semibold text-cozy-muted mb-1 block">กำลังไฟ (วัตต์/W)</label>
+                                <input type="number" id="devWatt" placeholder="เช่น 1200" class="w-full cozy-input px-3 py-2 text-xs font-en text-cozy-text">
+                            </div>
+                            <div class="col-span-6">
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-[11px] font-semibold text-cozy-muted">ใช้งาน/วัน</label>
+                                    <!-- Unit Selector Toggle (Hours / Minutes) -->
+                                    <div class="inline-flex p-0.5 bg-cozy-accent rounded-md text-[10px] font-bold">
+                                        <button id="unitBtnHours" onclick="setTimeUnit('hours')" type="button" class="px-2 py-0.5 rounded bg-spark-500 text-white transition">ชม.</button>
+                                        <button id="unitBtnMinutes" onclick="setTimeUnit('minutes')" type="button" class="px-2 py-0.5 rounded text-cozy-muted hover:text-cozy-text transition">นาที</button>
+                                    </div>
+                                </div>
+                                <input type="number" id="devTime" placeholder="8" step="0.5" class="w-full cozy-input px-3 py-2 text-xs font-en text-cozy-text">
+                            </div>
+                        </div>
+
+                        <!-- Days per Month Input (Leave blank to skip calculation) -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-[11px] font-semibold text-cozy-muted">จำนวนวันที่ใช้งานต่อเดือน (1 - 31 วัน)</label>
+                                <span class="text-[10px] text-amber-600 font-medium">*เว้นว่างไว้ = ข้ามการคำนวณ</span>
+                            </div>
+                            <input type="number" id="devDays" placeholder="เช่น 30 (หรือเว้นว่างถ้าไม่ได้ใช้)" min="1" max="31" class="w-full cozy-input px-3 py-2 text-xs font-en text-cozy-text">
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="addDeviceFromForm()" class="w-full spark-gradient hover:opacity-95 active:scale-[0.99] text-white font-semibold py-2.5 rounded-xl shadow-md shadow-spark-500/15 transition flex items-center justify-center space-x-2 text-xs mt-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>บันทึกเพิ่มลงรายการ</span>
+                    </button>
+                </div>
+
+                <!-- 4. RECENT APPLIANCES LIST (BOTTOMMOST) -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between px-1">
+                        <div class="flex items-center space-x-1.5">
+                            <i data-lucide="list-checks" class="w-4 h-4 text-spark-500"></i>
+                            <span class="text-xs font-bold text-cozy-text uppercase tracking-wider">รายการอุปกรณ์เครื่องใช้ล่าสุด (<span id="deviceCount" class="font-en text-spark-600">0</span>)</span>
+                        </div>
+                        <span class="text-[11px] text-cozy-muted">ประมาณการ / เดือน</span>
+                    </div>
+
+                    <!-- Dynamic Appliance Cards Container -->
+                    <div id="deviceList" class="space-y-2">
+                        <!-- Rendered via JavaScript -->
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================== -->
+            <!-- TAB 2: MONTHLY SUMMARY & ANALYTICS TAB -->
+            <!-- ========================================== -->
+            <section id="tab-summary" class="tab-content hidden space-y-4">
+                
+                <!-- Month Navigator Bar -->
+                <div class="cozy-card p-3 flex items-center justify-between">
+                    <button onclick="changeMonthNav(-1)" class="p-1.5 hover:bg-spark-50 rounded-xl text-spark-600 transition">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </button>
+                    <div class="text-center">
+                        <span class="text-[10px] text-cozy-muted block uppercase tracking-wider font-semibold">ประจำเดือน</span>
+                        <h3 id="currentMonthNavTitle" class="text-sm font-bold text-cozy-text font-en">สิงหาคม 2569</h3>
+                    </div>
+                    <button onclick="changeMonthNav(1)" class="p-1.5 hover:bg-spark-50 rounded-xl text-spark-600 transition">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Energy Breakdown Donut Chart (Top Energy Hogs) -->
+                <div class="cozy-card p-4 space-y-3">
+                    <div class="flex items-center justify-between border-b border-cozy-border pb-2.5">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4 text-spark-500"></i>
+                            <h2 class="text-xs font-bold text-cozy-text">สัดส่วนการใช้ไฟ (Top Energy Hogs)</h2>
+                        </div>
+                        <span class="text-[10px] text-cozy-muted">วิเคราะห์รายอุปกรณ์</span>
+                    </div>
+
+                    <!-- Donut Chart Container -->
+                    <div class="relative w-full h-48 flex items-center justify-center">
+                        <canvas id="energyDonutChart"></canvas>
+                        <div id="noDataChartText" class="absolute hidden text-xs text-cozy-muted">ยังไม่มีข้อมูลอุปกรณ์ที่นำมาคำนวณ</div>
+                    </div>
+                </div>
+
+                <!-- Monthly Bill Auditor Input & Comparator -->
+                <div class="cozy-card p-4 space-y-3">
+                    <div class="flex items-center space-x-2 border-b border-cozy-border pb-2.5">
+                        <i data-lucide="file-check" class="w-4 h-4 text-spark-500"></i>
+                        <div>
+                            <h2 class="text-xs font-bold text-cozy-text">Bill Auditor (ตรวจเช็คบิลนิติประจำเดือน)</h2>
+                            <p class="text-[10px] text-cozy-muted">เปรียบเทียบค่าไฟคำนวณ vs ยอดเงินในบิลจริง</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <div>
+                            <label class="text-[11px] font-semibold text-cozy-muted mb-1 block">ยอดบิลจริงจากนิติหอพัก (บาท)</label>
+                            <input type="number" id="archiveActualBill" placeholder="ระบุจำนวนเงินบิลจริง" class="w-full cozy-input px-3 py-2 text-xs font-en font-bold text-cozy-text">
+                        </div>
+
+                        <button onclick="saveMonthlyArchive()" class="w-full bg-cozy-text hover:bg-stone-800 text-white font-medium py-2.5 rounded-xl shadow-sm transition flex items-center justify-center space-x-2 text-xs">
+                            <i data-lucide="bookmark-plus" class="w-4 h-4"></i>
+                            <span>บันทึกลงประวัติสรุปรายเดือน</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Monthly History Archive List -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between px-1">
+                        <span class="text-xs font-bold text-cozy-text uppercase tracking-wider flex items-center space-x-1.5">
+                            <i data-lucide="history" class="w-4 h-4 text-spark-500"></i>
+                            <span>ประวัติสรุปย้อนหลัง (<span id="historyCount" class="font-en">0</span>)</span>
+                        </span>
+                    </div>
+
+                    <div id="monthlyHistoryList" class="space-y-2.5">
+                        <!-- History items rendered via JS -->
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================== -->
+            <!-- TAB 3: ACCOUNT TAB (User Profile & Settings) -->
+            <!-- ========================================== -->
+            <section id="tab-account" class="tab-content hidden space-y-4">
+                
+                <!-- User Profile Management -->
+                <div class="cozy-card p-4 space-y-4">
+                    <div class="flex items-center space-x-3 border-b border-cozy-border pb-3">
+                        <div class="relative">
+                            <div id="accountAvatarDisplay" class="w-14 h-14 rounded-full bg-spark-100 border-2 border-spark-500 flex items-center justify-center text-2xl shadow-sm">
+                                🐱
+                            </div>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-bold text-cozy-text">ข้อมูลผู้ใช้งานและห้องพัก</h2>
+                            <p class="text-[11px] text-cozy-muted">จัดการโปรไฟล์และตั้งค่าในแอพ</p>
+                        </div>
+                    </div>
+
+                    <!-- Avatar Preset Selection -->
+                    <div>
+                        <label class="text-[11px] font-semibold text-cozy-muted mb-1.5 block">เลือกรูปอวาตาร์ประจำตัว</label>
+                        <div class="flex space-x-2 overflow-x-auto pb-1">
+                            <button type="button" onclick="selectAvatar('🐱')" class="w-9 h-9 rounded-full bg-stone-100 hover:bg-spark-100 text-lg flex items-center justify-center border border-cozy-border">🐱</button>
+                            <button type="button" onclick="selectAvatar('🐻')" class="w-9 h-9 rounded-full bg-stone-100 hover:bg-spark-100 text-lg flex items-center justify-center border border-cozy-border">🐻</button>
+                            <button type="button" onclick="selectAvatar('🐰')" class="w-9 h-9 rounded-full bg-stone-100 hover:bg-spark-100 text-lg flex items-center justify-center border border-cozy-border">🐰</button>
+                            <button type="button" onclick="selectAvatar('🐶')" class="w-9 h-9 rounded-full bg-stone-100 hover:bg-spark-100 text-lg flex items-center justify-center border border-cozy-border">🐶</button>
+                            <button type="button" onclick="selectAvatar('⚡')" class="w-9 h-9 rounded-full bg-stone-100 hover:bg-spark-100 text-lg flex items-center justify-center border border-cozy-border">⚡</button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[11px] font-semibold text-cozy-muted mb-1 block">ชื่อผู้ใช้งาน</label>
+                            <input type="text" id="accUserName" class="w-full cozy-input px-3 py-2 text-xs text-cozy-text" placeholder="เช่น เด็กหอ สายประหยัด">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[11px] font-semibold text-cozy-muted mb-1 block">ชื่อหอพัก</label>
+                                <input type="text" id="accDormName" class="w-full cozy-input px-3 py-2 text-xs text-cozy-text" placeholder="เช่น Green Residence">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-semibold text-cozy-muted mb-1 block">เลขห้องพัก</label>
+                                <input type="text" id="accRoomNo" class="w-full cozy-input px-3 py-2 text-xs text-cozy-text font-en" placeholder="เช่น 408">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[11px] font-semibold text-cozy-muted mb-1 block">ตั้งค่างบประมาณค่าไฟ / เดือน (บาท)</label>
+                            <input type="number" id="accBudgetCap" class="w-full cozy-input px-3 py-2 text-xs font-en font-bold text-spark-700" placeholder="1500">
+                        </div>
+
+                        <button onclick="saveAccountSettings()" class="w-full spark-gradient hover:opacity-95 text-white font-medium py-2.5 rounded-xl shadow-sm transition text-xs flex items-center justify-center space-x-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>บันทึกการเปลี่ยนแปลง</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dorm Hacks & Tips Card -->
+                <div class="cozy-card p-4 bg-spark-50/70 border-spark-200/80 space-y-2">
+                    <div class="flex items-center space-x-2 text-spark-700 font-bold text-xs">
+                        <i data-lucide="lightbulb" class="w-4 h-4 text-spark-500"></i>
+                        <span>ทริคประหยัดไฟเด็กหอพัก ⚡</span>
+                    </div>
+                    <ul class="text-[11px] text-stone-700 leading-relaxed list-disc list-inside space-y-1">
+                        <li>เปิดแอร์ 25-26°C ควบคู่เปิดพัดลม ช่วยประหยัดค่าไฟได้ 10-15%</li>
+                        <li>ถอดปลั๊กไมโครเวฟ/กาน้ำร้อนเมื่อไม่ใช้งาน ป้องกัน Standby Power</li>
+                        <li>อุปกรณ์ชิ้นไหนไม่ได้เปิดใช้ในเดือนนี้ ให้เว้นว่างช่อง "จำนวนวัน" ไว้ เพื่อข้ามการคำนวณครับ</li>
+                    </ul>
+                </div>
+
+                <!-- Data Reset Option -->
+                <div class="cozy-card p-4 space-y-2">
+                    <h3 class="text-xs font-bold text-cozy-text uppercase tracking-wider">จัดการข้อมูลระบบ</h3>
+                    <button onclick="confirmResetAll()" class="w-full bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 py-2.5 rounded-xl text-xs font-medium transition flex items-center justify-center space-x-1">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>รีเซ็ตข้อมูลทั้งหมดในเครื่อง</span>
+                    </button>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- BOTTOM TAB NAVIGATION BAR -->
+        <nav class="fixed bottom-0 left-0 right-0 max-w-[440px] mx-auto bg-white/95 backdrop-blur-md border-t border-cozy-border px-4 py-2 flex justify-around items-center z-40 shadow-lg">
+            <button onclick="switchTab('calculator')" id="nav-calculator" class="nav-btn flex flex-col items-center space-y-1 text-spark-500">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+                <span class="text-[10px] font-bold">คำนวณไฟ</span>
+            </button>
+            <button onclick="switchTab('summary')" id="nav-summary" class="nav-btn flex flex-col items-center space-y-1 text-cozy-muted hover:text-spark-500">
+                <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                <span class="text-[10px] font-bold">สรุปรายเดือน</span>
+            </button>
+            <button onclick="switchTab('account')" id="nav-account" class="nav-btn flex flex-col items-center space-y-1 text-cozy-muted hover:text-spark-500">
+                <i data-lucide="user" class="w-5 h-5"></i>
+                <span class="text-[10px] font-bold">บัญชีผู้ใช้</span>
+            </button>
+        </nav>
+
+        <!-- EDIT DEVICE MODAL -->
+        <div id="editModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+            <div class="cozy-card max-w-xs w-full p-4 space-y-3 bg-white animate-in fade-in zoom-in duration-150">
+                <div class="flex items-center justify-between border-b border-cozy-border pb-2">
+                    <h4 class="text-xs font-bold text-cozy-text flex items-center space-x-1">
+                        <i data-lucide="edit-3" class="w-4 h-4 text-spark-500"></i>
+                        <span>แก้ไขอุปกรณ์ไฟฟ้า</span>
+                    </h4>
+                    <button onclick="closeEditModal()" class="text-stone-400 hover:text-stone-600">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <input type="hidden" id="editDevId">
+                <div class="space-y-2">
+                    <div>
+                        <label class="text-[10px] font-semibold text-cozy-muted block mb-1">ชื่อเครื่องใช้ไฟฟ้า</label>
+                        <input type="text" id="editDevName" class="w-full cozy-input px-3 py-1.5 text-xs text-cozy-text">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] font-semibold text-cozy-muted block mb-1">กำลังไฟ (วัตต์)</label>
+                            <input type="number" id="editDevWatt" class="w-full cozy-input px-3 py-1.5 text-xs font-en text-cozy-text">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-semibold text-cozy-muted block mb-1">เวลาใช้งาน/วัน</label>
+                            <input type="number" id="editDevTime" step="0.5" class="w-full cozy-input px-3 py-1.5 text-xs font-en text-cozy-text">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] font-semibold text-cozy-muted block mb-1">หน่วยเวลา</label>
+                            <select id="editDevUnit" class="w-full cozy-input px-2 py-1.5 text-xs text-cozy-text">
+                                <option value="hours">ชั่วโมง (ชม.)</option>
+                                <option value="minutes">นาที (นาที)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-semibold text-cozy-muted block mb-1">วัน/เดือน (เว้นว่าง=ข้าม)</label>
+                            <input type="number" id="editDevDays" min="1" max="31" class="w-full cozy-input px-3 py-1.5 text-xs font-en text-cozy-text" placeholder="30">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2 border-t border-cozy-border">
+                    <button onclick="closeEditModal()" class="px-3 py-1.5 bg-stone-200 text-cozy-text rounded-lg text-xs font-medium">ยกเลิก</button>
+                    <button onclick="saveDeviceEdit()" class="px-3 py-1.5 spark-gradient text-white rounded-lg text-xs font-medium shadow-sm">บันทึกแก้ไข</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUSTOM ALERT / CONFIRM MODAL DIALOG (No alert / confirm) -->
+        <div id="customModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+            <div class="cozy-card max-w-xs w-full p-4 space-y-3 bg-white animate-in fade-in zoom-in duration-150">
+                <div class="flex items-center space-x-2 text-spark-500" id="modalIconHeader">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                    <h4 class="text-sm font-bold text-cozy-text" id="modalTitle">แจ้งเตือน</h4>
+                </div>
+                <p class="text-xs text-cozy-muted leading-relaxed" id="modalMessage">ข้อความแจ้งเตือน</p>
+                <div class="flex justify-end space-x-2 pt-2 border-t border-cozy-border" id="modalActions">
+                    <button onclick="closeModal()" class="px-4 py-1.5 spark-gradient text-white rounded-lg text-xs font-medium">ตกลง</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- APPLICATION LOGIC SCRIPT -->
+    <script>
+        // Application State
+        let state = {
+            user: {
+                name: 'เด็กหอ สายประหยัด',
+                dorm: 'Green Residence',
+                room: '408',
+                budgetCap: 1500,
+                avatar: '🐱'
+            },
+            config: {
+                rate: 8
+            },
+            currentUnit: 'hours', // 'hours' or 'minutes'
+            navMonthOffset: 0,
+            devices: [],
+            history: []
+        };
+
+        let donutChartInstance = null;
+
+        // Initialize App on DOM Loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            updateMonthNavTitle();
+            lucide.createIcons();
+            calculateAll();
+        });
+
+        // Load state from LocalStorage
+        function loadState() {
+            const saved = localStorage.getItem('dormsaver_state_v5');
+            if (saved) {
+                try {
+                    state = JSON.parse(saved);
+                } catch(e) {
+                    console.error('Failed to parse saved state', e);
+                }
+            } else {
+                // Default Initial Devices
+                state.devices = [
+                    { id: 1, name: 'เครื่องปรับอากาศ 12,000 BTU', watt: 1200, time: 8, timeUnit: 'hours', daysPerMonth: 30 },
+                    { id: 2, name: 'ตู้เย็น 2 ประตู', watt: 150, time: 24, timeUnit: 'hours', daysPerMonth: 30 },
+                    { id: 3, name: 'พัดลมตั้งโต๊ะ', watt: 50, time: 10, timeUnit: 'hours', daysPerMonth: 30 }
+                ];
+            }
+
+            // Sync inputs with state
+            document.getElementById('electricityRate').value = state.config.rate || 8;
+            document.getElementById('accUserName').value = state.user.name || '';
+            document.getElementById('accDormName').value = state.user.dorm || '';
+            document.getElementById('accRoomNo').value = state.user.room || '';
+            document.getElementById('accBudgetCap').value = state.user.budgetCap || 1500;
+            
+            updateHeaderUserDisplay();
+        }
+
+        // Save state to LocalStorage
+        function saveState() {
+            localStorage.setItem('dormsaver_state_v5', JSON.stringify(state));
+        }
+
+        // Update Top Header Display
+        function updateHeaderUserDisplay() {
+            const sub = document.getElementById('headerSubText');
+            sub.innerText = `${state.user.dorm || 'หอพัก'} • ห้อง ${state.user.room || '-'}`;
+            
+            const avatar = state.user.avatar || '🐱';
+            document.getElementById('headerAvatarEmoji').innerText = avatar;
+            document.getElementById('accountAvatarDisplay').innerText = avatar;
+        }
+
+        function selectAvatar(emoji) {
+            state.user.avatar = emoji;
+            updateHeaderUserDisplay();
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-spark-500');
+                btn.classList.add('text-cozy-muted');
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabName}`).classList.remove('text-cozy-muted');
+            document.getElementById(`nav-${tabName}`).classList.add('text-spark-500');
+
+            if (tabName === 'summary') {
+                renderDonutChart();
+            }
+        }
+
+        // Toggle Hours vs Minutes
+        function setTimeUnit(unit) {
+            state.currentUnit = unit;
+            const btnH = document.getElementById('unitBtnHours');
+            const btnM = document.getElementById('unitBtnMinutes');
+
+            if (unit === 'hours') {
+                btnH.className = 'px-2 py-0.5 rounded bg-spark-500 text-white transition';
+                btnM.className = 'px-2 py-0.5 rounded text-cozy-muted hover:text-cozy-text transition';
+                document.getElementById('devTime').placeholder = '8';
+            } else {
+                btnM.className = 'px-2 py-0.5 rounded bg-spark-500 text-white transition';
+                btnH.className = 'px-2 py-0.5 rounded text-cozy-muted hover:text-cozy-text transition';
+                document.getElementById('devTime').placeholder = '15';
+            }
+        }
+
+        // Add Device Form
+        function addDeviceFromForm() {
+            const name = document.getElementById('devName').value.trim();
+            const watt = parseFloat(document.getElementById('devWatt').value);
+            const time = parseFloat(document.getElementById('devTime').value);
+            const daysRaw = document.getElementById('devDays').value.trim();
+
+            if (!name || isNaN(watt) || isNaN(time) || time <= 0) {
+                showModal('กรอกข้อมูลไม่ครบถ้วน', 'กรุณากรอกชื่อเครื่องใช้ไฟฟ้า, กำลังไฟวัตต์ และเวลาใช้งานต่อวันให้ถูกต้องครับ');
+                return;
+            }
+
+            const daysVal = daysRaw !== '' ? parseInt(daysRaw, 10) : null;
+
+            state.devices.push({
+                id: Date.now(),
+                name: name,
+                watt: watt,
+                time: time,
+                timeUnit: state.currentUnit,
+                daysPerMonth: daysVal
+            });
+
+            // Clear Form Inputs
+            document.getElementById('devName').value = '';
+            document.getElementById('devWatt').value = '';
+            document.getElementById('devTime').value = '';
+            document.getElementById('devDays').value = '';
+
+            calculateAll();
+        }
+
+        function removeDevice(id) {
+            showModal(
+                'ยืนยันการลบอุปกรณ์',
+                'คุณต้องการลบเครื่องใช้ไฟฟ้านี้ออกจากรายการใช่หรือไม่?',
+                true,
+                () => {
+                    state.devices = state.devices.filter(d => d.id !== id);
+                    calculateAll();
+                }
+            );
+        }
+
+        function openEditModal(id) {
+            const dev = state.devices.find(d => d.id === id);
+            if (!dev) return;
+
+            document.getElementById('editDevId').value = dev.id;
+            document.getElementById('editDevName').value = dev.name;
+            document.getElementById('editDevWatt').value = dev.watt;
+            document.getElementById('editDevTime').value = dev.time;
+            document.getElementById('editDevUnit').value = dev.timeUnit || 'hours';
+            document.getElementById('editDevDays').value = (dev.daysPerMonth !== null && dev.daysPerMonth !== undefined) ? dev.daysPerMonth : '';
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function saveDeviceEdit() {
+            const id = parseInt(document.getElementById('editDevId').value, 10);
+            const name = document.getElementById('editDevName').value.trim();
+            const watt = parseFloat(document.getElementById('editDevWatt').value);
+            const time = parseFloat(document.getElementById('editDevTime').value);
+            const unit = document.getElementById('editDevUnit').value;
+            const daysRaw = document.getElementById('editDevDays').value.trim();
+
+            if (!name || isNaN(watt) || isNaN(time) || time <= 0) {
+                showModal('กรอกข้อมูลไม่ถูกต้อง', 'กรุณากรอกชื่อ, กำลังวัตต์ และเวลาใช้งานให้ถูกต้องครับ');
+                return;
+            }
+
+            const daysVal = daysRaw !== '' ? parseInt(daysRaw, 10) : null;
+
+            const index = state.devices.findIndex(d => d.id === id);
+            if (index >= 0) {
+                state.devices[index] = {
+                    id: id,
+                    name: name,
+                    watt: watt,
+                    time: time,
+                    timeUnit: unit,
+                    daysPerMonth: daysVal
+                };
+            }
+
+            closeEditModal();
+            calculateAll();
+        }
+
+        function calculateAll() {
+            state.config.rate = parseFloat(document.getElementById('electricityRate').value) || 8;
+
+            let totalMonthlyKwh = 0;
+            const deviceListEl = document.getElementById('deviceList');
+            deviceListEl.innerHTML = '';
+
+            state.devices.forEach(dev => {
+                // Condition: If daysPerMonth is empty/null/undefined -> Skip calculation
+                const isCalculated = dev.daysPerMonth !== null && dev.daysPerMonth !== undefined && dev.daysPerMonth !== '' && !isNaN(dev.daysPerMonth) && Number(dev.daysPerMonth) > 0;
+                
+                let monthlyKwh = 0;
+                let monthlyCost = 0;
+
+                if (isCalculated) {
+                    const days = Math.min(Math.max(parseInt(dev.daysPerMonth, 10), 1), 31);
+                    const hoursPerDay = dev.timeUnit === 'minutes' ? (dev.time / 60) : dev.time;
+                    monthlyKwh = (dev.watt * hoursPerDay * days) / 1000;
+                    monthlyCost = monthlyKwh * state.config.rate;
+                    totalMonthlyKwh += monthlyKwh;
+                }
+
+                const unitText = dev.timeUnit === 'minutes' ? 'นาที/วัน' : 'ชม./วัน';
+
+                // Render Device Card Item
+                const item = document.createElement('div');
+                const borderClass = isCalculated ? 'border-l-spark-500' : 'border-l-stone-300 opacity-75 bg-stone-50/50';
+                item.className = `cozy-card p-3 flex items-center justify-between border-l-4 ${borderClass}`;
+                
+                const daysBadge = isCalculated 
+                    ? `<span class="text-[10px] bg-spark-100 text-spark-700 px-1.5 py-0.5 rounded font-medium">${dev.daysPerMonth} วัน/เดือน</span>` 
+                    : `<span class="text-[10px] bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded font-medium">ข้ามการคำนวณ (เว้นว่าง)</span>`;
+
+                const calculationText = isCalculated 
+                    ? `<span class="text-xs font-bold font-en text-spark-600">${monthlyKwh.toFixed(1)} kWh</span>
+                       <span class="text-[11px] text-cozy-muted block font-en">~${monthlyCost.toFixed(0)} ฿</span>`
+                    : `<span class="text-xs font-semibold font-en text-stone-400">- 0.0 kWh</span>
+                       <span class="text-[10px] text-stone-400 block font-en">(ไม่นำมาคิด)</span>`;
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2 ${isCalculated ? 'bg-spark-50 text-spark-600' : 'bg-stone-100 text-stone-400'} rounded-xl">
+                            <i data-lucide="zap" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-1.5">
+                                <h4 class="text-xs font-bold text-cozy-text">${dev.name}</h4>
+                            </div>
+                            <div class="flex items-center space-x-2 mt-0.5">
+                                <p class="text-[11px] text-cozy-muted font-en">${dev.watt}W • ${dev.time} ${unitText}</p>
+                                ${daysBadge}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="text-right mr-1">
+                            ${calculationText}
+                        </div>
+                        <button onclick="openEditModal(${dev.id})" class="text-stone-400 hover:text-spark-600 transition-colors p-1" title="แก้ไข">
+                            <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="removeDevice(${dev.id})" class="text-stone-300 hover:text-rose-500 transition-colors p-1" title="ลบ">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+                deviceListEl.appendChild(item);
+            });
+
+            const totalCost = totalMonthlyKwh * state.config.rate;
+            const dailyCost = totalCost / 30;
+
+            document.getElementById('deviceCount').innerText = state.devices.length;
+            document.getElementById('totalKwh').innerText = `${totalMonthlyKwh.toFixed(2)} kWh`;
+            document.getElementById('totalCost').innerText = `${totalCost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ฿`;
+            document.getElementById('dailyCost').innerText = `${dailyCost.toFixed(2)} ฿`;
+
+            // Update Budget Progress Bar
+            const budgetCap = state.user.budgetCap || 1500;
+            const percent = Math.min(Math.round((totalCost / budgetCap) * 100), 100);
+            
+            document.getElementById('budgetValueDisplay').innerText = `${budgetCap.toLocaleString('th-TH')} ฿`;
+            document.getElementById('budgetPercentDisplay').innerText = `${percent}%`;
+            
+            const bar = document.getElementById('budgetProgressBar');
+            bar.style.width = `${percent}%`;
+            if (percent > 90) {
+                bar.className = 'h-full bg-rose-300 rounded-full transition-all duration-300';
+            } else if (percent > 75) {
+                bar.className = 'h-full bg-amber-200 rounded-full transition-all duration-300';
+            } else {
+                bar.className = 'h-full bg-white rounded-full transition-all duration-300';
+            }
+
+            renderHistoryList();
+            renderDonutChart();
+            lucide.createIcons();
+            saveState();
+        }
+
+        // Render Donut Chart for Top Energy Hogs
+        function renderDonutChart() {
+            const ctx = document.getElementById('energyDonutChart');
+            if (!ctx) return;
+
+            const labels = [];
+            const data = [];
+            const colors = ['#FF9822', '#EDAA49', '#52B8A8', '#644872', '#FEBAC7', '#8D99AE'];
+
+            state.devices.forEach(dev => {
+                const isCalculated = dev.daysPerMonth !== null && dev.daysPerMonth !== undefined && dev.daysPerMonth !== '' && !isNaN(dev.daysPerMonth) && Number(dev.daysPerMonth) > 0;
+                if (isCalculated) {
+                    const days = Math.min(Math.max(parseInt(dev.daysPerMonth, 10), 1), 31);
+                    const hours = dev.timeUnit === 'minutes' ? (dev.time / 60) : dev.time;
+                    const kwh = (dev.watt * hours * days) / 1000;
+                    labels.push(dev.name);
+                    data.push(parseFloat(kwh.toFixed(1)));
+                }
+            });
+
+            const noDataText = document.getElementById('noDataChartText');
+            if (data.length === 0) {
+                noDataText.classList.remove('hidden');
+            } else {
+                noDataText.classList.add('hidden');
+            }
+
+            if (donutChartInstance) {
+                donutChartInstance.destroy();
+            }
+
+            donutChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, data.length),
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Prompt', size: 10 },
+                                boxWidth: 10
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function changeMonthNav(delta) {
+            state.navMonthOffset += delta;
+            updateMonthNavTitle();
+        }
+
+        function updateMonthNavTitle() {
+            const date = new Date();
+            date.setMonth(date.getMonth() + state.navMonthOffset);
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const year = date.getFullYear() + 543;
+            document.getElementById('currentMonthNavTitle').innerText = `${thaiMonths[date.getMonth()]} ${year}`;
+        }
+
+        function saveMonthlyArchive() {
+            const monthTitle = document.getElementById('currentMonthNavTitle').innerText;
+            const actualBill = parseFloat(document.getElementById('archiveActualBill').value) || 0;
+
+            let totalKwh = 0;
+            state.devices.forEach(dev => {
+                const isCalculated = dev.daysPerMonth !== null && dev.daysPerMonth !== undefined && dev.daysPerMonth !== '' && !isNaN(dev.daysPerMonth) && Number(dev.daysPerMonth) > 0;
+                if (isCalculated) {
+                    const days = Math.min(Math.max(parseInt(dev.daysPerMonth, 10), 1), 31);
+                    const hours = dev.timeUnit === 'minutes' ? (dev.time / 60) : dev.time;
+                    totalKwh += (dev.watt * hours * days) / 1000;
+                }
+            });
+            const calcCost = totalKwh * state.config.rate;
+
+            // Upsert to history
+            const existingIndex = state.history.findIndex(h => h.title === monthTitle);
+            const record = {
+                id: Date.now(),
+                title: monthTitle,
+                calcCost: calcCost,
+                actualCost: actualBill,
+                totalKwh: totalKwh
+            };
+
+            if (existingIndex >= 0) {
+                state.history[existingIndex] = record;
+            } else {
+                state.history.unshift(record);
+            }
+
+            document.getElementById('archiveActualBill').value = '';
+            showModal('บันทึกสำเร็จ ⚡', `บันทึกสรุปค่าไฟประจำเดือน "${monthTitle}" เรียบร้อยแล้ว`);
+            calculateAll();
+        }
+
+        function renderHistoryList() {
+            const listEl = document.getElementById('monthlyHistoryList');
+            document.getElementById('historyCount').innerText = state.history.length;
+            listEl.innerHTML = '';
+
+            if (state.history.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-6 text-cozy-muted text-xs cozy-card p-4">
+                        ยังไม่มีประวัติการบันทึกสรุปรายเดือน
+                    </div>
+                `;
+                return;
+            }
+
+            state.history.forEach(item => {
+                const diff = item.actualCost > 0 ? (item.actualCost - item.calcCost) : 0;
+                let badgeClass = 'bg-stone-100 text-stone-600';
+                let badgeText = 'ไม่ได้ระบุบิลจริง';
+
+                if (item.actualCost > 0) {
+                    if (Math.abs(diff) <= 150) {
+                        badgeClass = 'bg-emerald-100 text-emerald-700';
+                        badgeText = 'ตรงตามประเมิน';
+                    } else if (diff > 150) {
+                        badgeClass = 'bg-rose-100 text-rose-700';
+                        badgeText = `สูงกว่าคำนวณ +${diff.toFixed(0)} ฿`;
+                    } else {
+                        badgeClass = 'bg-sky-100 text-sky-700';
+                        badgeText = `ต่ำกว่าคำนวณ ${diff.toFixed(0)} ฿`;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'cozy-card p-3.5 space-y-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-xs font-bold text-cozy-text font-en">${item.title}</h4>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${badgeClass}">${badgeText}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-cozy-border">
+                        <div>
+                            <span class="text-[10px] text-cozy-muted block">ยอดคำนวณจากแอป</span>
+                            <span class="font-bold font-en text-spark-600">${item.calcCost.toFixed(2)} ฿</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-cozy-muted block">ยอดบิลจริงจากนิติ</span>
+                            <span class="font-bold font-en text-cozy-text">${item.actualCost > 0 ? item.actualCost.toFixed(2) + ' ฿' : '-'}</span>
+                        </div>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function saveAccountSettings() {
+            state.user.name = document.getElementById('accUserName').value.trim();
+            state.user.dorm = document.getElementById('accDormName').value.trim();
+            state.user.room = document.getElementById('accRoomNo').value.trim();
+            state.user.budgetCap = parseFloat(document.getElementById('accBudgetCap').value) || 1500;
+
+            updateHeaderUserDisplay();
+            calculateAll();
+            showModal('บันทึกสำเร็จ', 'อัปเดตข้อมูลบัญชีผู้ใช้และงบประมาณเรียบร้อยแล้ว');
+        }
+
+        function showModal(title, message, isConfirm = false, onConfirm = null) {
+            const modal = document.getElementById('customModal');
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            
+            const actions = document.getElementById('modalActions');
+            if (isConfirm) {
+                actions.innerHTML = `
+                    <button onclick="closeModal()" class="px-3 py-1.5 bg-stone-200 text-cozy-text rounded-lg text-xs font-medium">ยกเลิก</button>
+                    <button id="modalConfirmBtn" class="px-3 py-1.5 bg-rose-500 text-white rounded-lg text-xs font-medium">ยืนยัน</button>
+                `;
+                document.getElementById('modalConfirmBtn').onclick = () => {
+                    closeModal();
+                    if (onConfirm) onConfirm();
+                };
+            } else {
+                actions.innerHTML = `
+                    <button onclick="closeModal()" class="px-4 py-1.5 spark-gradient text-white rounded-lg text-xs font-medium">ตกลง</button>
+                `;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
+        function confirmResetAll() {
+            showModal(
+                'ยืนยันการรีเซ็ตข้อมูล', 
+                'คุณต้องการลบรายการอุปกรณ์และประวัติทั้งหมดใช่หรือไม่?',
+                true,
+                () => {
+                    localStorage.removeItem('dormsaver_state_v5');
+                    state.devices = [];
+                    state.history = [];
+                    calculateAll();
+                    showModal('รีเซ็ตสำเร็จ', 'ข้อมูลถูกล้างเรียบร้อยแล้ว');
+                }
+            );
+        }
+    </script>
+</body>
+</html>
